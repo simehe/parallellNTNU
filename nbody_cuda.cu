@@ -101,7 +101,7 @@ __device__ float2 calculate_velocity_change_planet(float4 p, float4 q){
 
 // TODO 5. Calculate the change in velocity for my_planet, caused by the interactions with a block of planets
 __device__ float2 calculate_velocity_change_block(float4 my_planet, float4* shared_planets){
-    float2 velocity = {0.0f, 0.0f}
+    float2 velocity = {0.0f, 0.0f};
     for(int i = 0; i < blockDim.x; i++){
         float2 tempv = calculate_velocity_change_planet(my_planet, shared_planets[i]);
         velocity.x += tempv.x;
@@ -116,7 +116,7 @@ __device__ float2 calculate_velocity_change_block(float4 my_planet, float4* shar
 // TODO 4. Update the velocities by calculating the planet interactions
 __global__ void update_velocities(float4* planets, float2* velocities, int num_planets){
     int thread_id = blockIdx.x * blockDim.x + threadIdx.x;
-    float4 my_planet = planets[threat_id];
+    float4 my_planet = planets[thread_id];
     __shared__ float4 shared_planets[BLOCK_SIZE];
     for(int i = 0; i < num_planets; i+=blockDim.x){
         shared_planets[threadIdx.x] = planets[i + threadIdx.x];
@@ -147,7 +147,7 @@ int main(int argc, char** argv){
     // TODO 1. Allocate device memory, and transfer data to device 
     cudaMalloc(&planets_d, sizeof(float4)*num_planets);
     cudaMalloc(&velocities_d, sizeof(float2)*num_planets);
-    cudaMemcoy(planets_d, planets, sizeof(float4)*num_planets, cudaMemcpyHostToDevice);
+    cudaMemcpy(planets_d, planets, sizeof(float4)*num_planets, cudaMemcpyHostToDevice);
     cudaMemcpy(velocities_d, velocities, sizeof(float2)*num_planets, cudaMemcpyHostToDevice);
 
 
