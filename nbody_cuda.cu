@@ -3,10 +3,11 @@
 #include <math.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <time.h>
 
 #define dT 0.2f
 #define G 0.6f
-#define BLOCK_SIZE 64
+#define BLOCK_SIZE 128
 
 // Global variables
 int num_planets;
@@ -34,7 +35,7 @@ void parse_args(int argc, char** argv){
 // Reads planets from planets.txt
 void read_planets(){
 
-    FILE* file = fopen("planets.txt", "r");
+    FILE* file = fopen("planets4096.txt", "r");
     if(file == NULL){
         printf("'planets.txt' not found. Exiting\n");
         exit(-1);
@@ -84,7 +85,7 @@ __device__ float2 calculate_velocity_change_planet(float4 p, float4 q){
     float2 r;
     r.x = q.x - p.x;
     r.y = q.y - p.y;
-    if(r.x == 0 && r.y == 0){
+    if(r.x == 0.0 && r.y == 0.0){
         float2 v = {0.0f, 0.0f};
         return v;
     }    
@@ -153,6 +154,7 @@ int main(int argc, char** argv){
 
     // Calculating the number of blocks
     int num_blocks = num_planets/BLOCK_SIZE + ((num_planets%BLOCK_SIZE == 0) ? 0 : 1);
+    double start_t = clock();		
 
     // Main loop
     for(int t = 0; t < num_timesteps; t++){
@@ -160,12 +162,18 @@ int main(int argc, char** argv){
         update_velocities<<<num_blocks,BLOCK_SIZE >>>(planets_d, velocities_d, num_planets);
         update_positions<<<num_blocks, BLOCK_SIZE>>>(planets_d, velocities_d, num_planets);
     }
-
+    double end_t = clock();
     // TODO 3. Transfer data back to host
     cudaMemcpy(velocities, velocities_d, sizeof(float2)*num_planets, cudaMemcpyDeviceToHost);
     cudaMemcpy(planets, planets_d, sizeof(float4)*num_planets, cudaMemcpyDeviceToHost);
-
-    
+    double total_t = (double)(end_t - start_t);
+    cudaDeviceSynchronize();
+    printf("Time taken to run: %f ", total_t/CLOCKS_PER_SEC); 
     // Output
     write_planets(num_timesteps);
+    
+    cudaFree(planets_d);
+    cudaFree(velocities_d);
+    free(planets);
+    free(velocities);	
 }
